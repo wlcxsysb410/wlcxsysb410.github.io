@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iXu 的相册</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #fff0f5 0%, #ffe4f0 30%, #ffd6ec 60%, #fce4ec 100%);
+            color: #5c3a4a;
+        }
+
+        /* Nav bar */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: rgba(255, 240, 245, 0.85);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 182, 193, 0.3);
+            padding: 0 24px;
+        }
+
+        .nav-inner {
+            max-width: 960px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 52px;
+        }
+
+        .nav-logo {
+            font-size: 1.1rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, #ff6b9d, #ee5a9f);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-decoration: none;
+        }
+
+        .nav-links { display: flex; gap: 6px; }
+
+        .nav-links a {
+            padding: 6px 16px;
+            border-radius: 18px;
+            font-size: 0.88rem;
+            color: #b8748c;
+            text-decoration: none;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            background: linear-gradient(135deg, #ff9a9e, #fecfef);
+            color: #fff;
+        }
+
+        /* Page container */
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 76px 24px 40px;
+        }
+
+        /* Page header */
+        .page-header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .page-header h1 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, #ff6b9d, #ee5a9f, #ff9a9e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 6px;
+        }
+
+        .page-header p {
+            color: #b8748c;
+            font-size: 0.95rem;
+        }
+
+        .photo-count {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 4px 14px;
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(255, 182, 193, 0.3);
+            border-radius: 16px;
+            font-size: 0.82rem;
+            color: #c06088;
+        }
+
+        /* Gallery grid - masonry */
+        .gallery {
+            columns: 2;
+            column-gap: 14px;
+        }
+
+        .gallery-item {
+            break-inside: avoid;
+            margin-bottom: 14px;
+            border-radius: 14px;
+            overflow: hidden;
+            border: 3px solid rgba(255, 255, 255, 0.7);
+            box-shadow: 0 4px 14px rgba(255, 105, 135, 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .gallery-item:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 28px rgba(255, 105, 135, 0.2);
+        }
+
+        .gallery-item img {
+            width: 100%;
+            display: block;
+            object-fit: cover;
+        }
+
+        .gallery-item .caption {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 24px 12px 10px;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.35));
+            color: #fff;
+            font-size: 0.8rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .gallery-item:hover .caption { opacity: 1; }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 32px;
+            flex-wrap: wrap;
+        }
+
+        .page-btn {
+            min-width: 38px;
+            height: 38px;
+            border: 1px solid rgba(255, 182, 193, 0.4);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.55);
+            color: #b8748c;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 12px;
+            backdrop-filter: blur(8px);
+        }
+
+        .page-btn:hover {
+            background: linear-gradient(135deg, rgba(255, 154, 158, 0.3), rgba(254, 207, 239, 0.4));
+            transform: translateY(-2px);
+        }
+
+        .page-btn.active {
+            background: linear-gradient(135deg, #ff9a9e, #fecfef);
+            color: #fff;
+            border-color: transparent;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(255, 105, 135, 0.25);
+        }
+
+        .page-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .page-info {
+            font-size: 0.82rem;
+            color: #c8809e;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        /* Lightbox */
+        .lightbox {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 999;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .lightbox.active { display: flex; }
+
+        .lightbox img {
+            max-width: 92%;
+            max-height: 85vh;
+            border-radius: 16px;
+            box-shadow: 0 0 50px rgba(255, 182, 193, 0.3);
+            user-select: none;
+        }
+
+        .lb-btn {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            border-radius: 50%;
+            width: 46px;
+            height: 46px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            transition: background 0.3s;
+        }
+
+        .lb-btn:hover { background: rgba(255, 255, 255, 0.3); }
+
+        .lb-close { top: 18px; right: 20px; font-size: 26px; }
+        .lb-prev { left: 16px; top: 50%; transform: translateY(-50%); }
+        .lb-next { right: 16px; top: 50%; transform: translateY(-50%); }
+
+        .lb-counter {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.85rem;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 4px 16px;
+            border-radius: 12px;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 32px;
+            text-align: center;
+            color: #cda0b4;
+            font-size: 0.85rem;
+            padding-bottom: 20px;
+        }
+
+        @media (min-width: 640px) {
+            .gallery { columns: 3; }
+        }
+
+        @media (max-width: 480px) {
+            .page-header h1 { font-size: 1.4rem; }
+            .gallery { columns: 2; column-gap: 10px; }
+            .gallery-item { margin-bottom: 10px; }
+            .container { padding: 68px 14px 30px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Nav -->
+    <nav class="navbar">
+        <div class="nav-inner">
+            <a href="index.html" class="nav-logo">&#x1F431; iXu</a>
+            <div class="nav-links">
+                <a href="index.html">&#x1F3E0; 首页</a>
+                <a href="gallery.html" class="active">&#x1F4F8; 相册</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Page header -->
+        <div class="page-header">
+            <h1>&#x1F4F8; 生活碎片</h1>
+            <p>用镜头记录下的美好瞬间</p>
+            <div class="photo-count" id="photoCount"></div>
+        </div>
+
+        <!-- Gallery -->
+        <div class="gallery" id="gallery"></div>
+
+        <!-- Pagination -->
+        <div class="pagination" id="pagination"></div>
+        <div class="page-info" id="pageInfo"></div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>&#x1F49D; &copy; 2026 iXu &middot; Made with &#x2764;&#xFE0F; &middot; Powered by GitHub Pages &#x1F49D;</p>
+        </div>
+    </div>
+
+    <!-- Lightbox -->
+    <div class="lightbox" id="lightbox">
+        <button class="lb-btn lb-close" onclick="closeLightbox()">&times;</button>
+        <button class="lb-btn lb-prev" onclick="lbNav(-1)">&#x276E;</button>
+        <button class="lb-btn lb-next" onclick="lbNav(1)">&#x276F;</button>
+        <img id="lbImg" src="" alt="preview">
+        <div class="lb-counter" id="lbCounter"></div>
+    </div>
+
+    <script>
+    // ============================================
+    // 全自动！放照片进 images/ 目录就行，不用改任何代码
+    // 命名：(1).jpg, (2).jpg, (3).jpg ...
+    // ============================================
+    const PER_PAGE = 12;
+
+    let allPhotos = [];
+    let currentPage = 1;
+    let currentPhotos = [];
+    let lbIndex = 0;
+    let totalPages = 1;
+
+    // 自动探测：逐个尝试加载图片，失败则停止
+    function detectPhotos() {
+        return new Promise(resolve => {
+            const found = [];
+            let checking = 1;
+
+            function check() {
+                const img = new Image();
+                img.onload = () => {
+                    found.push(checking);
+                    checking++;
+                    check();
+                };
+                img.onerror = () => resolve(found);
+                img.src = `images/(${checking}).jpg`;
+            }
+
+            check();
+        });
+    }
+
+    // 渲染当前页
+    function render(page) {
+        currentPage = page;
+        const start = (page - 1) * PER_PAGE;
+        const end = Math.min(start + PER_PAGE, allPhotos.length);
+        currentPhotos = allPhotos.slice(start, end);
+
+        // 渲染图片
+        const gallery = document.getElementById('gallery');
+        gallery.innerHTML = '';
+        currentPhotos.forEach((n, i) => {
+            const item = document.createElement('div');
+            item.className = 'gallery-item';
+            item.onclick = () => openLightbox(i);
+            item.innerHTML =
+                '<img src="images/(' + n + ').jpg" alt="照片 ' + n + '" loading="lazy">' +
+                '<div class="caption">\uD83C\uDF38 第 ' + n + ' 张</div>';
+            gallery.appendChild(item);
+        });
+
+        // 渲染分页
+        const pagination = document.getElementById('pagination');
+        pagination.innerHTML = '';
+
+        if (totalPages > 1) {
+            // 上一页
+            const prev = document.createElement('button');
+            prev.className = 'page-btn';
+            prev.innerHTML = '\u276E';
+            prev.disabled = page === 1;
+            prev.onclick = () => render(page - 1);
+            pagination.appendChild(prev);
+
+            // 页码
+            for (let p = 1; p <= totalPages; p++) {
+                const btn = document.createElement('button');
+                btn.className = 'page-btn' + (p === page ? ' active' : '');
+                btn.textContent = p;
+                btn.onclick = () => render(p);
+                pagination.appendChild(btn);
+            }
+
+            // 下一页
+            const next = document.createElement('button');
+            next.className = 'page-btn';
+            next.innerHTML = '\u276F';
+            next.disabled = page === totalPages;
+            next.onclick = () => render(page + 1);
+            pagination.appendChild(next);
+        }
+
+        // 页码信息
+        document.getElementById('pageInfo').textContent =
+            '\u7B2C ' + (start + 1) + '-' + end + ' \u5F20 / \u5171 ' + allPhotos.length + ' \u5F20';
+
+        // 回到顶部
+        if (!window._firstLoad) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        window._firstLoad = false;
+    }
+
+    // 灯箱
+    function openLightbox(idx) {
+        lbIndex = idx;
+        updateLightbox();
+        document.getElementById('lightbox').classList.add('active');
+    }
+
+    function closeLightbox() {
+        document.getElementById('lightbox').classList.remove('active');
+    }
+
+    function lbNav(dir) {
+        lbIndex += dir;
+        if (lbIndex < 0) lbIndex = currentPhotos.length - 1;
+        if (lbIndex >= currentPhotos.length) lbIndex = 0;
+        updateLightbox();
+    }
+
+    function updateLightbox() {
+        const n = currentPhotos[lbIndex];
+        document.getElementById('lbImg').src = 'images/(' + n + ').jpg';
+        document.getElementById('lbCounter').textContent =
+            (lbIndex + 1) + ' / ' + currentPhotos.length;
+    }
+
+    // 键盘支持
+    document.addEventListener('keydown', e => {
+        const lb = document.getElementById('lightbox');
+        if (!lb.classList.contains('active')) return;
+        if (e.key === 'Escape') closeLightbox();
+        if (e.key === 'ArrowLeft') lbNav(-1);
+        if (e.key === 'ArrowRight') lbNav(1);
+    });
+
+    // 点击背景关闭
+    document.getElementById('lightbox').addEventListener('click', e => {
+        if (e.target === document.getElementById('lightbox')) closeLightbox();
+    });
+
+    // 启动：自动探测 → 渲染
+    window._firstLoad = true;
+    detectPhotos().then(photos => {
+        allPhotos = photos;
+        totalPages = Math.ceil(allPhotos.length / PER_PAGE);
+
+        // 更新照片计数
+        document.getElementById('photoCount').innerHTML =
+            '\uD83D\uDCF7 \u5171 ' + allPhotos.length + ' \u5F20\u7167\u7247 / ' + totalPages + ' \u9875';
+
+        if (allPhotos.length === 0) {
+            document.getElementById('gallery').innerHTML =
+                '<p style="text-align:center;color:#c8809e;padding:40px 0;">' +
+                '\uD83C\uDF38 \u8FD8\u6CA1\u6709\u7167\u7247\u54E6\uFF0C\u5FEB\u53BB images/ \u76EE\u5F55\u653E\u51E0\u5F20\u5427~</p>';
+            return;
+        }
+
+        render(1);
+    });
+    </script>
+</body>
+</html>
